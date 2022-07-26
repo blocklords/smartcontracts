@@ -1,56 +1,100 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "./Lottery.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- *  @title Blocklords Onsales
- *  @author Medet Ahmetson (ahmetson@zoho.com)
- *  @notice This contract is for tracking
+ *  @title Blocklords
+ *  @author Medet Ahmetson (admin@blocklords.io)
+ *  @notice MEAD token
+ *  @dev Not bridged as meter.io required. Bridging and minting are the same.
  */
-contract Mead is Lottery {
-    mapping (address => uint) public amounts;
-    IERC721 old;
+contract Mead is ERC20, Ownable {
+    /// @notice the list of bridge addresses allowed to mint tokens.
+    mapping(address => bool) public bridges;
+    mapping(address => uint) public mintNonceOf;
+    mapping(address => uint) public burnNonceOf;
 
-    event Buy(address indexed buyer, uint price, uint amount);
-    event BurnOldNft(address indexed owner, uint indexed tokenId);
+    uint256 private constant mintId = 13;
+    uint256 private constant burnId = 16;
 
-    constructor (address _old, address _verifier, address _fund) Lottery (_verifier, _fund) {
-        old = IERC721(_old);
+    uint256 public limitSupply = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    // Mint and Burn
+    modifier onlyBridge {
+        require(bridges[msg.sender]);
+        _;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    //
-    // User functions.
-    //
-    ////////////////////////////////////////////////////////////////////////////
+    event AddBridge(address indexed bridge);
+    event RemoveBridge(address indexed bridge);
 
-    /// @notice Buy a bronze silver pack.
-    /// @param price is the price that user has to pay
-    function buy(uint price, uint8 v, bytes32 r, bytes32 s) external payable {
-        require(price > 0, "PRICE_0");
-        require(msg.value == price, "INVALID_ATTACHED_ETH");
+    constructor() ERC20("MEAD", "MEAD") {}
 
-        amounts[msg.sender]++;
+    function addBridge(address _bridge) external onlyOwner {
+        require(bridgeAllowed, "no bridging");
+        require(_bridge != address(0), "invalid address");
+        require(!bridges[_bridge], "bridge already added");
 
-        // investor, level verification with claim verifier
+        bridges[_bridge] = true;
+
+        emit AddBridge(_bridge);
+   }
+
+    function removeBridge(address _bridge) external onlyOwner {
+        require(bridgeAllowed, "no bridging");
+        require(_bridge != address(0), "invalid address");
+        require(bridges[_bridge], "bridge already removed");
+
+        delete bridges[_bridge];
+
+        emit RemoveBridge(_bridge);
+   }
+
+   /**
+     * @dev Creates `amount` new tokens for `to`.
+     *
+     * See {ERC20-_mint}.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `MINTER_ROLE`.
+     */
+    function mint(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
+        // investor, project verification
 	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), block.chainid, amounts[msg.sender]));
+	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), chainid, _amount, mintId, mintNonceOf[msg.sender]));
 	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
-	    address recover         = ecrecover(hash, v, r, s);
-	    require(recover == verifier,                   "SIG");
+	    address recover         = ecrecover(hash, _v, _r, _s);
 
-        payable(fund).transfer(msg.value);
+	    require(bridges[recover], "sig");
 
-        emit Buy(msg.sender, msg.value, amounts[msg.sender]);
+        require(_totalSupply.add(amount) <= limitSupply, "exceeded mint limit");
+        
+        mintNonceOf[msg.sender]++;
+
+        _mint(msg.sender, _amount);
     }
 
+    /**
+     * @dev Destroys `amount` tokens from the caller.
+     *
+     * See {ERC20-_burn}.
+     *
+     * Included just to follow the standard of OpenZeppelin.
+     */
+    function burn(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) public {
+        // investor, project verification
+	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
+	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), chainid, _amount, burnId, burnNonceOf[msg.sender]));
+	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
+	    address recover         = ecrecover(hash, _v, _r, _s);
 
-    function burnOld(uint nftId) external {
-        require (old.isApprovedForAll(msg.sender, address(this)) || old.getApproved(nftId) == address(this), "NOT_APPROVED");
-        old.safeTransferFrom(msg.sender, 0x000000000000000000000000000000000000dEaD, nftId);
+	    require(bridges[recover], "sig");
 
-        emit BurnOldNft(msg.sender, nftId);
+        burnNonceOf[msg.sender]++;
+
+        _burn(msg.sender, memory_amount);
     }
 }
