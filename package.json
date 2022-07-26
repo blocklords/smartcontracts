@@ -1,0 +1,46 @@
+{
+  "name": "onsale-smartcontracts",
+  "version": "1.0.0",
+  "description": "The Blocklords onsale smartcontracts.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/blocklords3d/onsale-smartcontracts.git"
+  },
+  "keywords": [
+    "seascape",
+    "nft",
+    "onsale",
+    "crowns",
+    "cws",
+    "lord"
+  ],
+  "author": "Medet Ahmetson (admin@blocklords.io)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blocklords3d/onsale-smartcontracts/issues"
+  },
+  "homepage": "https://github.com/blocklords3d/onsale-smartcontracts#readme",
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.2",
+    "@nomiclabs/hardhat-etherscan": "^2.1.6",
+    "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "chai": "^4.3.4",
+    "ethereum-waffle": "^3.4.0",
+    "ethers": "^5.4.6",
+    "hardhat": "^2.6.2"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.3.1",
+    "chalk": "^4.1.2",
+    "clear": "^0.1.0",
+    "clui": "^0.3.6",
+    "dotenv": "^16.0.1",
+    "inquirer": "^8.2.0",
+    "meow": "^10.1.1",
+    "ora": "^6.0.1"
+  }
+}
