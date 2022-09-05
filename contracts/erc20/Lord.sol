@@ -10,54 +10,123 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  *  @notice The LORD token
  */
 contract Lord is ERC20, Ownable {
+    uint256 private _million = 1000 * 1000 * 10 ** 18;
+    uint256 private _thousand = 1000 * 10 ** 18;
+
+    bool[11] public originalMints;
+
     /// @notice Set to false to stop mint/burn of token. Set to true to allow minting.
     bool public bridgeAllowed = false;
+
+    uint public limitSupply = 0;
 
     /// @notice the list of bridge addresses allowed to mint tokens.
     mapping(address => bool) public bridges;
 
     // Mint and Burn
     modifier onlyBridge {
-        require(bridgeAllowed && bridges[msg.sender]);
+        require(bridgeAllowed && bridges[msg.sender], "not a bridge or original contract");
         _;
     }
 
+    modifier original {
+        require(!bridgeAllowed, "bridge is not allowed");
+        _;
+    }
+
+    modifier onlyMultisig(address multisig) {
+        require(multisig.codehash > 0, "not multisig");
+        _;
+    }
+
+    event IncreaseLimitSupply(uint256 limitSupply);
     event AddBridge(address indexed bridge);
     event RemoveBridge(address indexed bridge);
 
     /// @param _bridgeAllowed is FALSE in the token at the original token.
     constructor(
-        address _seedSale,
-        address _strategicSale,
-        address _privateSale,
-        address _launchpads,
-        address _ieo,
-        address _lordsBounty,
-        address _kingsBounty,
-        address _dynastyIncentives,
-        address _liquidity,
-        address _foundationReserve,
-        address _advisor,
         bool _bridgeAllowed) ERC20("BLOCKLORDS", "LORD") {
         bridgeAllowed = _bridgeAllowed;
-        uint256 _million = 1000 * 1000 * 10 ** 18;
-        uint256 thousand = 1000 * 10 ** 18;
 
-        if (!_bridgeAllowed) {
-            _mint(_seedSale, 8 * _million + (750 * thousand));  // 8.75% of 100 million
-            _mint(_seedSale, 6 * _million + (250 * thousand));  // 8.75% of 100 million
-            _mint(_privateSale, 7 * _million);  // 8.75% of 100 million
-            _mint(_launchpads, 2 * _million);  // 8.75% of 100 million
-            _mint(_ieo, 1 * _million);  // 8.75% of 100 million
-            _mint(_lordsBounty, 25 * _million);  // 8.75% of 100 million
-            _mint(_kingsBounty, 10 * _million);  // 8.75% of 100 million
-            _mint(_dynastyIncentives, 15 * _million);  // 8.75% of 100 million
-            _mint(_liquidity, 10 * _million);  // 8.75% of 100 million
-            _mint(_foundationReserve, 10 * _million);  // 8.75% of 100 million
-            _mint(_advisor, 5 * _million);  // 8.75% of 100 million
-
-            require(_totalSupple == 100 * _million, "not a 100 million tokens");
+        for (uint8 i = 0; i < 11; i++) {
+            originalMints[i] = false;
         }
+    }
+
+    function mintSeedSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[0], "minted");
+    
+        originalMints[0] = true;
+
+        _mint(multisig, 8 * _million + (750 * _thousand));  // 8.75%
+    }
+
+    function mintStrategicSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[1], "minted");
+        originalMints[1] = true;
+        _mint(multisig, 6 * _million + (250 * _thousand));  // 6.25%
+    }
+
+    function mintPrivateSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[2], "minted");
+        originalMints[2] = true;
+        _mint(multisig, 7 * _million);  // 7%
+    }
+
+    function mintLaunchpad(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[3], "minted");
+        originalMints[3] = true;
+        _mint(multisig, 2 * _million);  // 2%
+    }
+
+    function mintIeo(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[4], "minted");
+        originalMints[4] = true;
+        _mint(multisig, 1 * _million);  // 1%
+    }
+
+    function mintLordsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[5], "minted");
+        originalMints[5] = true;
+        _mint(multisig, 25 * _million + (750 * _thousand));  // 25%
+    }
+
+    function mintKingsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[6], "minted");
+        originalMints[6] = true;
+        _mint(multisig, 10 * _million);  // 10%
+    }
+
+    function mintDynastyIncentives(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[7], "minted");
+        originalMints[7] = true;
+        _mint(multisig, 15 * _million);  // 15%
+    }
+
+    function mintLiquidity(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[8], "minted");
+        originalMints[8] = true;
+        _mint(multisig, 10 * _million);  // 10%
+    }
+
+    function mintFoundationReserve(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[9], "minted");
+        originalMints[9] = true;
+        _mint(multisig, 10 * _million);  // 10%
+    }
+
+    function mintAdvisors(address multisig) external onlyMultisig(multisig) original onlyOwner {
+        require(!originalMints[10], "minted");
+        originalMints[10] = true;
+        _mint(multisig, 5 * _million);  // 5%
+    }
+
+    function increaseLimitSupply(uint256 amount) external onlyOwner {
+        require(limitSupply + amount <= 100 * 1000 * 1000 * 10 ** 18, "Exceeds the max cap");
+        
+        limitSupply += amount;
+
+        emit IncreaseLimitSupply(limitSupply);
     }
 
     function addBridge(address _bridge) external onlyOwner {
@@ -90,19 +159,8 @@ contract Lord is ERC20, Ownable {
      * - the caller must have the `MINTER_ROLE`.
      */
     function mint(address to, uint256 amount) external onlyBridge {
-        require(_totalSupply.add(amount) <= limitSupply, "exceeded mint limit");
+        require(totalSupply() + amount <= limitSupply, "exceeded mint limit");
         _mint(to, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from the caller.
-     *
-     * See {ERC20-_burn}.
-     *
-     * Included just to follow the standard of OpenZeppelin.
-     */
-    function burn(uint256 amount) public {
-        require(false, "Only burnFrom is allowed");
     }
 
     /**
@@ -120,8 +178,7 @@ contract Lord is ERC20, Ownable {
         uint256 currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "burn amount exceeds allowance");
 
-        _approve(account, _msgSender(), currentAllowance
-            .sub(amount, "transfer amount exceeds allowance"));
+        _approve(account, _msgSender(), currentAllowance - amount);
         _burn(account, amount);
     }
 }

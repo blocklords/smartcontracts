@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  *  @dev Not bridged as meter.io required. Bridging and minting are the same.
  */
 contract Mead is ERC20, Ownable {
+    bool public bridgeAllowed = false;
+
     /// @notice the list of bridge addresses allowed to mint tokens.
     mapping(address => bool) public bridges;
     mapping(address => uint) public mintNonceOf;
@@ -30,7 +32,9 @@ contract Mead is ERC20, Ownable {
     event AddBridge(address indexed bridge);
     event RemoveBridge(address indexed bridge);
 
-    constructor() ERC20("MEAD", "MEAD") {}
+    constructor(bool _bridgeAllowed) ERC20("MEAD", "MEAD") {
+        bridgeAllowed = _bridgeAllowed;
+    }
 
     function addBridge(address _bridge) external onlyOwner {
         require(bridgeAllowed, "no bridging");
@@ -64,13 +68,13 @@ contract Mead is ERC20, Ownable {
     function mint(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
         // investor, project verification
 	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), chainid, _amount, mintId, mintNonceOf[msg.sender]));
+	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), block.chainid, _amount, mintId, mintNonceOf[msg.sender]));
 	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
 	    address recover         = ecrecover(hash, _v, _r, _s);
 
 	    require(bridges[recover], "sig");
 
-        require(_totalSupply.add(amount) <= limitSupply, "exceeded mint limit");
+        require(totalSupply() + _amount <= limitSupply, "exceeded mint limit");
         
         mintNonceOf[msg.sender]++;
 
@@ -87,7 +91,7 @@ contract Mead is ERC20, Ownable {
     function burn(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) public {
         // investor, project verification
 	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), chainid, _amount, burnId, burnNonceOf[msg.sender]));
+	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), block.chainid, _amount, burnId, burnNonceOf[msg.sender]));
 	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
 	    address recover         = ecrecover(hash, _v, _r, _s);
 
@@ -95,6 +99,6 @@ contract Mead is ERC20, Ownable {
 
         burnNonceOf[msg.sender]++;
 
-        _burn(msg.sender, memory_amount);
+        _burn(msg.sender, _amount);
     }
 }
