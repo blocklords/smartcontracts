@@ -18,7 +18,7 @@ contract ImportExportElasticNft is SecureContract {
     event ChangeFeeReceiver(address indexed feeReceiver);
 
     constructor(address _nft) SecureContract(true, true) {
-        nft = nft;
+        nft = _nft;
         owner = msg.sender;
         verifier = msg.sender;
     }
