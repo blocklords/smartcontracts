@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  */
 contract Mead is ERC20, Ownable {
     using SafeMath for uint256;
-    
+
     bool public bridgeAllowed = false;
 
     /// @notice the list of bridge addresses allowed to mint tokens.
@@ -23,8 +23,6 @@ contract Mead is ERC20, Ownable {
 
     uint256 private constant mintId = 13;
     uint256 private constant burnId = 16;
-
-    uint256 public limitSupply = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     // Mint and Burn
     modifier onlyBridge {
@@ -77,7 +75,7 @@ contract Mead is ERC20, Ownable {
 
 	    require(bridges[recover], "sig");
 
-        require(totalSupply().add(_amount) <= limitSupply, "exceeded mint limit");
+        require(totalSupply().add(_amount) <= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, "exceeded mint limit");
         
         mintNonceOf[msg.sender]++;
 
