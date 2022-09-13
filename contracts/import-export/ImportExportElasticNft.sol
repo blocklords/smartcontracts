@@ -11,6 +11,8 @@ contract ImportExportElasticNft is SecureContract {
     address public verifier;
     address public feeReceiver;
 
+    mapping(address => uint) public nftExportNonce;
+
     event TransferOwnership(address indexed owner);
     event ChangeVerifier(address indexed verifier);
     event ChangeFeeReceiver(address indexed feeReceiver);

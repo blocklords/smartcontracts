@@ -36,7 +36,7 @@ abstract contract Mintable is Ownable, IMintable {
     }
 
 
-    function setMinter(address _minter) onlyOwner {
+    function setMinter(address _minter) external onlyOwner {
         require(!minters[_minter], "already set");
 
         minters[_minter] = true;
@@ -44,7 +44,7 @@ abstract contract Mintable is Ownable, IMintable {
         emit SetMinter(_minter);
     }
 
-    function unsetMinter(address _minter) onlyOwner {
+    function unsetMinter(address _minter) external onlyOwner {
         require(minters[_minter], "not set");
 
         delete minters[_minter];
@@ -62,18 +62,6 @@ abstract contract Mintable is Ownable, IMintable {
         _mintFor(user, id, blueprint);
         blueprints[id] = blueprint;
         emit AssetMinted(user, id, blueprint);
-    }
-
-    function mint(address user, uint id) external onlyMiner {
-        require(!exists(id), "minted token");
-        _safeMint(user, id);
-    }
-
-    function burn(id) external onlyMinter {
-        require(ownerOf(id) == msg.sender, "only burn your own token");
-        require(exists(id), "minted token");
-
-        _burn(id);
     }
 
     function _mintFor(
