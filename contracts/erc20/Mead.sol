@@ -66,19 +66,12 @@ contract Mead is ERC20, Ownable {
      *
      * - the caller must have the `MINTER_ROLE`.
      */
-    function mint(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
-        // investor, project verification
-	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), block.chainid, _amount, mintId, mintNonceOf[msg.sender]));
-	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
-	    address recover         = ecrecover(hash, _v, _r, _s);
-
-	    require(bridges[recover], "sig");
+    function mint(address _to, uint256 _amount) external onlyBridge {
+        require(_to != address(0) && _amount > 0, "0");
+	    require(bridges[msg.sender], "sig");
 
         require(totalSupply().add(_amount) <= 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, "exceeded mint limit");
         
-        mintNonceOf[msg.sender]++;
-
         _mint(msg.sender, _amount);
     }
 
@@ -89,17 +82,11 @@ contract Mead is ERC20, Ownable {
      *
      * Included just to follow the standard of OpenZeppelin.
      */
-    function burn(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) public {
-        // investor, project verification
-	    bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-	    bytes32 message         = keccak256(abi.encodePacked(msg.sender, address(this), block.chainid, _amount, burnId, burnNonceOf[msg.sender]));
-	    bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
-	    address recover         = ecrecover(hash, _v, _r, _s);
+    function burnFrom(address account, uint256 amount) external onlyBridge {
+        uint256 currentAllowance = allowance(account, _msgSender());
+        require(currentAllowance >= amount, "burn amount exceeds allowance");
 
-	    require(bridges[recover], "sig");
-
-        burnNonceOf[msg.sender]++;
-
-        _burn(msg.sender, _amount);
+        _approve(account, _msgSender(), currentAllowance - amount);
+        _burn(account, amount);
     }
 }
