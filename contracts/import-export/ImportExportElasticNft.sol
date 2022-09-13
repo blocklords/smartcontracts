@@ -25,6 +25,7 @@ contract ImportExportElasticNft is SecureContract {
 
     function transferOwnership(address _owner) external {
         require(msg.sender == owner, "forbidden");
+        require(_owner != address(0), "0");
         owner = _owner;
 
         emit TransferOwnership(owner);
@@ -32,6 +33,8 @@ contract ImportExportElasticNft is SecureContract {
 
     function changeVerifier(address _verifier) external {
         require(msg.sender == owner, "forbidden");
+        require(_verifier != address(0), "0");
+
         verifier = _verifier;
 
         emit ChangeVerifier(verifier);

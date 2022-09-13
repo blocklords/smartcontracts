@@ -21,6 +21,7 @@ contract ImportExportManager is SecureContract {
     event ChangeFeeReceiver(address indexed feeReceiver);
 
     constructor(address nft) SecureContract(true, true) {
+        require(nft != address(0), "0");
         supportedNfts[nft] = true;
         owner = msg.sender;
         verifier = msg.sender;
@@ -30,6 +31,8 @@ contract ImportExportManager is SecureContract {
 
     function transferOwnership(address _owner) external {
         require(msg.sender == owner, "forbidden");
+        require(_owner != address(0), "0");
+
         owner = _owner;
 
         emit TransferOwnership(owner);
@@ -37,6 +40,8 @@ contract ImportExportManager is SecureContract {
 
     function changeVerifier(address _verifier) external {
         require(msg.sender == owner, "forbidden");
+        require(_verifier != address(0), "0");
+
         verifier = _verifier;
 
         emit ChangeVerifier(verifier);
@@ -44,12 +49,15 @@ contract ImportExportManager is SecureContract {
 
     function changeFeeReceiver(address _feeReceiver) external {
         require(msg.sender == owner, "forbidden");
+        require(_feeReceiver != address(0), "0");
+
         feeReceiver = _feeReceiver;
 
         emit ChangeFeeReceiver(_feeReceiver);
     }
 
     function supportNft(address _nft) external {
+        require(_nft != address(0), "0 address");
         require(msg.sender == owner, "forbidden");
         require(!supportedNfts[_nft], "already supported");
 
@@ -59,6 +67,7 @@ contract ImportExportManager is SecureContract {
     }
 
     function supportToken(address _token) external {
+        require(_token != address(0), "0 address");
         require(msg.sender == owner, "forbidden");
         require(!supportedTokens[_token], "already supported");
 
@@ -106,6 +115,7 @@ contract ImportExportManager is SecureContract {
     /// Export function creates the contract if it wasn't created.
     /// Then on the name of the user withdraws the token.
     function exportNft(address nft, uint nftId, uint8 _v, bytes32 _r, bytes32 _s) external {
+        require(nft != address(0), "unknown token");
         require(supportedNfts[nft], "unsupported token");
 
         /// Validation of quality
@@ -131,6 +141,7 @@ contract ImportExportManager is SecureContract {
     }
 
     function exportToken(address token, uint amount, uint fee, uint8 _v, bytes32 _r, bytes32 _s) external {
+        require(token != address(0), "unknown token");
         require(supportedTokens[token], "unsupported token");
 
         /// Validation of quality
