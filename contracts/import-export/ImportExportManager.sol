@@ -8,6 +8,7 @@ contract ImportExportManager is SecureContract {
     address public owner;
     address public verifier;
     address public feeReceiver;
+    address public bundler;
 
     mapping(address => uint256) public nftExportNonce;
     mapping(address => uint256) public tokenExportNonce;
@@ -19,6 +20,12 @@ contract ImportExportManager is SecureContract {
     event TransferOwnership(address indexed owner);
     event ChangeVerifier(address indexed verifier);
     event ChangeFeeReceiver(address indexed feeReceiver);
+    event ChangeBundler(address indexed bunderer);
+
+    modifier onlyBundler {
+        require(msg.sender == bundler);
+        _;
+    }
 
     constructor(address nft) SecureContract(true, true) {
         require(nft != address(0), "0");
@@ -54,6 +61,15 @@ contract ImportExportManager is SecureContract {
         feeReceiver = _feeReceiver;
 
         emit ChangeFeeReceiver(_feeReceiver);
+    }
+
+    function changeBundler(address _bundler) external {
+        require(msg.sender == owner, "forbidden");
+        require(_bundler != address(0), "0");
+
+        bundler = _bundler;
+
+        emit ChangeBundler(bundler);
     }
 
     function supportNft(address _nft) external {
@@ -140,6 +156,27 @@ contract ImportExportManager is SecureContract {
         AccountHodler(accountHodler).exportNft(nft, msg.sender, nftId);
     }
 
+
+    function exportNft(address nft, uint8 length, address[] calldata to, uint[] calldata nftId) external onlyBundler {
+        require(length > 0 && length <= 100, "length");
+        require(nft != address(0), "unknown token");
+        require(supportedNfts[nft], "unsupported token");
+
+        for (uint8 i = 0; i < length; i++) {
+            require(to[i] != address(0), "0");
+            address accountHodler = accountHodlerOf(to[i]);
+
+            if (address(accountHodler).codehash == 0) {
+                require(deploy(accountHodler, to[i]), "Failed to deploy the contract");
+                AccountHodler(accountHodler).initialize(owner);
+            }
+
+            AccountHodler(accountHodler).exportNft(nft, to[i], nftId[i]);
+        }
+    }
+
+    
+
     function exportToken(address token, uint amount, uint fee, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(token != address(0), "unknown token");
         require(supportedTokens[token], "unsupported token");
@@ -163,6 +200,25 @@ contract ImportExportManager is SecureContract {
             AccountHodler(accountHodler).initialize(owner);
         }
 
-        AccountHodler(accountHodler).exportToken(token,msg.sender, feeReceiver, amount, fee);
+        AccountHodler(accountHodler).exportToken(token, msg.sender, feeReceiver, amount, fee);
+    }
+
+
+    function exportTokens(address token, uint8 length, address[] calldata to, uint[] calldata amount, uint[] calldata fee) external onlyBundler {
+        require(length > 0 && length <= 100, "length");
+        require(token != address(0), "unknown token");
+        require(supportedTokens[token], "unsupported token");
+
+        for (uint8 i = 0; i < length; i++) {
+            require(to[i] != address(0), "0");
+            address accountHodler = accountHodlerOf(to[i]);
+
+            if (address(accountHodler).codehash == 0) {
+                require(deploy(accountHodler, to[i]), "Failed to deploy the contract");
+                AccountHodler(accountHodler).initialize(owner);
+            }
+
+            AccountHodler(accountHodler).exportToken(token, to[i], feeReceiver, amount[i], fee[i]);
+        }
     }
 }

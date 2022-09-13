@@ -10,12 +10,20 @@ contract ImportExportElasticNft is SecureContract {
     address public owner;
     address public verifier;
     address public feeReceiver;
+    address public bundler;
 
     mapping(address => uint) public nftExportNonce;
 
     event TransferOwnership(address indexed owner);
     event ChangeVerifier(address indexed verifier);
     event ChangeFeeReceiver(address indexed feeReceiver);
+    event ChangeBundler(address indexed bunderer);
+
+    // Mint and Burn
+    modifier onlyBundler {
+        require(msg.sender == bundler);
+        _;
+    }
 
     constructor(address _nft) SecureContract(true, true) {
         nft = _nft;
@@ -38,6 +46,15 @@ contract ImportExportElasticNft is SecureContract {
         verifier = _verifier;
 
         emit ChangeVerifier(verifier);
+    }
+
+    function changeBundler(address _bundler) external {
+        require(msg.sender == owner, "forbidden");
+        require(_bundler != address(0), "0");
+
+        bundler = _bundler;
+
+        emit ChangeBundler(bundler);
     }
 
     function changeFeeReceiver(address _feeReceiver) external {
@@ -72,4 +89,12 @@ contract ImportExportElasticNft is SecureContract {
         Blocklords(nft).mint(msg.sender, nftId);
     }
 
+
+    function exportNfts(uint8 length, uint[] calldata nftId, address[] calldata to) external onlyBundler {
+        require(length > 0 && length <= 100, "exceeds the limit");
+    
+        for (uint8 i = 0; i < length; i++) {
+            Blocklords(nft).mint(to[i], nftId[i]);
+        }
+    }
 }
