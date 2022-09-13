@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  *  @title Blocklords
@@ -11,6 +12,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  *  @dev Not bridged as meter.io required. Bridging and minting are the same.
  */
 contract Mead is ERC20, Ownable {
+    using SafeMath for uint256;
+    
     bool public bridgeAllowed = false;
 
     /// @notice the list of bridge addresses allowed to mint tokens.
@@ -74,7 +77,7 @@ contract Mead is ERC20, Ownable {
 
 	    require(bridges[recover], "sig");
 
-        require(totalSupply() + _amount <= limitSupply, "exceeded mint limit");
+        require(totalSupply().add(_amount) <= limitSupply, "exceeded mint limit");
         
         mintNonceOf[msg.sender]++;
 

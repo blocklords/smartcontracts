@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  *  @title Blocklords
@@ -10,6 +11,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  *  @notice The LORD token
  */
 contract Lord is ERC20, Ownable {
+    using SafeMath for uint256;
+
     uint256 private _million = 1000 * 1000 * 10 ** 18;
     uint256 private _thousand = 1000 * 10 ** 18;
 
@@ -159,7 +162,7 @@ contract Lord is ERC20, Ownable {
      * - the caller must have the `MINTER_ROLE`.
      */
     function mint(address to, uint256 amount) external onlyBridge {
-        require(totalSupply() + amount <= limitSupply, "exceeded mint limit");
+        require(totalSupply().add(amount) <= limitSupply, "exceeded mint limit");
         _mint(to, amount);
     }
 
