@@ -1,6 +1,6 @@
-# Truffle in docker
+# Smartcontract development in docker
 
-FROM node:17
+FROM node:16
 
 USER root
 
