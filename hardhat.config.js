@@ -24,7 +24,7 @@ module.exports = {
         interval: 1000
       }
     },
-    ropsten: {
+    sepolia: {
       url: process.env.ROPSTEN_REMOTE_HTTP,
       accounts: [
         process.env.ROPSTEN_DEPLOYER_KEY
