@@ -27,13 +27,9 @@ contract ImportExportManager is SecureContract {
         _;
     }
 
-    constructor(address nft) SecureContract(true, true) {
-        require(nft != address(0), "0");
-        supportedNfts[nft] = true;
+    constructor() SecureContract(true, true) {
         owner = msg.sender;
         verifier = msg.sender;
-
-        emit SupportNft(nft);
     }
 
     function transferOwnership(address _owner) external {
