@@ -25,9 +25,15 @@ module.exports = {
       }
     },
     sepolia: {
-      url: process.env.ROPSTEN_REMOTE_HTTP,
+      url: process.env.SEPOLIA_REMOTE_HTTP,
       accounts: [
-        process.env.ROPSTEN_DEPLOYER_KEY
+        process.env.SEPOLIA_DEPLOYER_KEY
+      ]
+    },
+    goerli: {
+      url: process.env.GOERLI_REMOTE_HTTP,
+      accounts: [
+        process.env.GOERLI_DEPLOYER_KEY
       ]
     }
   },
