@@ -10,11 +10,16 @@ contract ImportExportManager is SecureContract {
     address public feeReceiver;
     address public bundler;
 
+    // todo add another map for supported projects
+    // supported projects are tracked by project name (string).
+    // strcuture of the map:
+    // <project name> => <manager address>
     mapping(address => uint256) public nftExportNonce;
     mapping(address => uint256) public tokenExportNonce;
     mapping(address => bool) public supportedNfts;
     mapping(address => bool) public supportedTokens;
 
+    // todo add another two events for adding or removing supported project
     event SupportNft(address indexed nft);
     event SupportToken(address indexed token);
     event TransferOwnership(address indexed owner);
@@ -88,6 +93,16 @@ contract ImportExportManager is SecureContract {
         emit SupportToken(_token);
     }
 
+    // todo
+    // add two functions
+    // 1. supportProject(projectName string) 
+    // this function can be called by anyone. the caller became the owner of the project name.
+    // the function emits SupportProject() event.
+    //
+    // 2. unsupportedProject(projectName string)
+    // this function can be called by the person who called supportProject() function.
+    // the function emits UnsupportProject() event.
+
     /**
      * @dev Returns the address where a contract will be stored if deployed via {deploy} from a contract located at
      * `deployer`. If `deployer` is this contract's address, returns the same value as {computeAddress}.
@@ -101,14 +116,20 @@ contract ImportExportManager is SecureContract {
         return address(uint160(uint256(_data)));
     }
 
+    // todo everywhere where we have user (address)
+    // we need to replace with project name + id (string)
+    // in the requirements make sure that project name exists in the supported projects list.
     function salt(address user) internal view returns(bytes32) {
         return keccak256(abi.encodePacked(user, address(this), uint(uint160(user))));
     }
 
+    // todo change user (address) with project name and id (string)
     function accountHodlerOf(address user) public view returns(address) {
         return computeAddress(salt(user), keccak256(type(AccountHodler).creationCode), address(this));
     } 
 
+    // todo
+    // change user parameter with project name, id
     function deploy(address accountHodler, address user) internal returns(bool) {
         address addr;
         bytes memory bytecode = type(AccountHodler).creationCode;
@@ -123,6 +144,7 @@ contract ImportExportManager is SecureContract {
         return true;
     }
 
+    // todo change msg.sender with project name + id
     /// @dev export function
     /// Export function creates the contract if it wasn't created.
     /// Then on the name of the user withdraws the token.
@@ -153,6 +175,7 @@ contract ImportExportManager is SecureContract {
     }
 
 
+    // todo change to[] with id[] and add project name
     function exportNft(address nft, uint8 length, address[] calldata to, uint[] calldata nftId) external onlyBundler {
         require(length > 0 && length <= 100, "length");
         require(nft != address(0), "unknown token");
@@ -173,6 +196,8 @@ contract ImportExportManager is SecureContract {
 
     
 
+    // todo pass project name and id
+    // todo replace msg.sender with project name and id
     function exportToken(address token, uint amount, uint fee, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(token != address(0), "unknown token");
         require(supportedTokens[token], "unsupported token");
@@ -187,8 +212,10 @@ contract ImportExportManager is SecureContract {
 
         require(_recover == verifier, "verification failed");
 
+        // project name and id
         tokenExportNonce[msg.sender]++;
 
+        // project name and id
         address accountHodler = accountHodlerOf(msg.sender);
 
         if (address(accountHodler).codehash == 0) {
@@ -200,6 +227,7 @@ contract ImportExportManager is SecureContract {
     }
 
 
+    // change to[] with id[], plus add project name.
     function exportTokens(address token, uint8 length, address[] calldata to, uint[] calldata amount, uint[] calldata fee) external onlyBundler {
         require(length > 0 && length <= 100, "length");
         require(token != address(0), "unknown token");
