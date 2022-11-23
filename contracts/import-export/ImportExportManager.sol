@@ -19,6 +19,8 @@ contract ImportExportManager is SecureContract {
     mapping(address => bool) public supportedNfts;
     mapping(address => bool) public supportedTokens;
 
+    mapping(string => address) public supportedProjects;
+
     // todo add another two events for adding or removing supported project
     event SupportNft(address indexed nft);
     event SupportToken(address indexed token);
@@ -26,6 +28,9 @@ contract ImportExportManager is SecureContract {
     event ChangeVerifier(address indexed verifier);
     event ChangeFeeReceiver(address indexed feeReceiver);
     event ChangeBundler(address indexed bunderer);
+
+    event SupportProject(string indexed project, address indexed manager);
+    event UnsupportedProject(string indexed project);
 
     modifier onlyBundler {
         require(msg.sender == bundler);
@@ -93,15 +98,30 @@ contract ImportExportManager is SecureContract {
         emit SupportToken(_token);
     }
 
-    // todo
     // add two functions
     // 1. supportProject(projectName string) 
     // this function can be called by anyone. the caller became the owner of the project name.
     // the function emits SupportProject() event.
-    //
+    function supportProject(string memory _project) external {
+        require(bytes(_project).length != 0, "0 string");
+        require(supportedProjects[_project] != address(0), "already supported");
+        
+        supportedProjects[_project] = msg.sender;
+
+        emit SupportProject(_project, msg.sender);
+    }
+
     // 2. unsupportedProject(projectName string)
     // this function can be called by the person who called supportProject() function.
     // the function emits UnsupportProject() event.
+    function unsupportedProject(string memory _project) external {
+        require(bytes(_project).length != 0, "0 string");
+        require(supportedProjects[_project] == msg.sender, "not the manager");
+
+        delete supportedProjects[_project];
+
+        emit UnsupportedProject(_project);
+    }
 
     /**
      * @dev Returns the address where a contract will be stored if deployed via {deploy} from a contract located at
@@ -119,26 +139,27 @@ contract ImportExportManager is SecureContract {
     // todo everywhere where we have user (address)
     // we need to replace with project name + id (string)
     // in the requirements make sure that project name exists in the supported projects list.
-    function salt(address user) internal view returns(bytes32) {
-        return keccak256(abi.encodePacked(user, address(this), uint(uint160(user))));
+    function salt(string memory _project, string memory _id) internal view returns(bytes32) {
+        return keccak256(abi.encodePacked(_project, _id, address(this)));
     }
 
-    // todo change user (address) with project name and id (string)
-    function accountHodlerOf(address user) public view returns(address) {
-        return computeAddress(salt(user), keccak256(type(AccountHodler).creationCode), address(this));
+    function accountHodlerOf(string memory _project, string memory _id) public view returns(address) {
+        return computeAddress(salt(_project, _id), keccak256(type(AccountHodler).creationCode), address(this));
     } 
 
-    // todo
     // change user parameter with project name, id
-    function deploy(address accountHodler, address user) internal returns(bool) {
+    function deploy(address accountHodler, string memory _project, string memory _id) internal returns(bool) {
         address addr;
+
         bytes memory bytecode = type(AccountHodler).creationCode;
-        bytes32 _salt = salt(user);
+
+        bytes32 _salt = salt(_project, _id);
         require(bytecode.length != 0, "Create2: bytecode length is zero");
-        /// @solidity memory-safe-assembly
+                
         assembly {
             addr := create2(0, add(bytecode, 0x20), mload(bytecode), _salt)
         }
+
         require(addr == accountHodler, "Create2: Failed on deploy");
 
         return true;
@@ -148,49 +169,59 @@ contract ImportExportManager is SecureContract {
     /// @dev export function
     /// Export function creates the contract if it wasn't created.
     /// Then on the name of the user withdraws the token.
-    function exportNft(address nft, uint nftId, uint8 _v, bytes32 _r, bytes32 _s) external {
+    function exportNft(string memory _project, string memory _id, address nft, uint nftId, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(nft != address(0), "unknown token");
         require(supportedNfts[nft], "unsupported token");
 
-        /// Validation of quality
-        /// message is generated as owner + amount + last time stamp + quality
-        bytes memory _prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 _messageNoPrefix =
-        keccak256(abi.encodePacked(msg.sender, nft, address(this), block.chainid, nftId, nftExportNonce[msg.sender]));
-        bytes32 _message = keccak256(abi.encodePacked(_prefix, _messageNoPrefix));
-        address _recover = ecrecover(_message, _v, _r, _s);
+        address accountHodler;
 
-        require(_recover == verifier, "verification failed");
+        if(msg.sender != address(0)) {
+            accountHodler = msg.sender;
+        } else {
+            accountHodler = accountHodlerOf(_project, _id);
+        }
 
-        nftExportNonce[msg.sender]++;
+        {
+            /// Validation of quality
+            /// message is generated as owner + amount + last time stamp + quality
+            bytes memory _prefix = "\x19Ethereum Signed Message:\n32";
 
-        address accountHodler = accountHodlerOf(msg.sender);
+            bytes32 _messageNoPrefix =
+            keccak256(abi.encodePacked(accountHodler, nft, address(this), block.chainid, nftId, nftExportNonce[accountHodler]));
+            bytes32 _message = keccak256(abi.encodePacked(_prefix, _messageNoPrefix));
+            address _recover = ecrecover(_message, _v, _r, _s);
+
+            require(_recover == verifier, "verification failed to exportNft!");
+        }
+
+        nftExportNonce[accountHodler]++;
+
 
         if (address(accountHodler).codehash == 0) {
-            require(deploy(accountHodler, msg.sender), "Failed to deploy the contract");
+            require(deploy(accountHodler, _project, _id), "Failed to deploy the contract");
             AccountHodler(accountHodler).initialize(owner);
         }
 
-        AccountHodler(accountHodler).exportNft(nft, msg.sender, nftId);
+        AccountHodler(accountHodler).exportNft(nft, accountHodler, nftId);
     }
 
 
     // todo change to[] with id[] and add project name
-    function exportNft(address nft, uint8 length, address[] calldata to, uint[] calldata nftId) external onlyBundler {
+    function exportNft(address nft, uint8 length, string memory _project, string[] memory _id, uint[] calldata nftId) external onlyBundler {
         require(length > 0 && length <= 100, "length");
         require(nft != address(0), "unknown token");
         require(supportedNfts[nft], "unsupported token");
 
         for (uint8 i = 0; i < length; i++) {
-            require(to[i] != address(0), "0");
-            address accountHodler = accountHodlerOf(to[i]);
+            // require(to[i] != address(0), "0");
+            address accountHodler = accountHodlerOf(_project, _id[i]);
 
             if (address(accountHodler).codehash == 0) {
-                require(deploy(accountHodler, to[i]), "Failed to deploy the contract");
+                require(deploy(accountHodler, _project, _id[i]), "Failed to deploy the contract");
                 AccountHodler(accountHodler).initialize(owner);
             }
 
-            AccountHodler(accountHodler).exportNft(nft, to[i], nftId[i]);
+            AccountHodler(accountHodler).exportNft(nft, accountHodler, nftId[i]);
         }
     }
 
@@ -198,51 +229,58 @@ contract ImportExportManager is SecureContract {
 
     // todo pass project name and id
     // todo replace msg.sender with project name and id
-    function exportToken(address token, uint amount, uint fee, uint8 _v, bytes32 _r, bytes32 _s) external {
+    function exportToken(string memory _project, string memory _id, address token, uint amount, uint fee, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(token != address(0), "unknown token");
         require(supportedTokens[token], "unsupported token");
 
-        /// Validation of quality
-        /// message is generated as owner + amount + last time stamp + quality
-        bytes memory _prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 _messageNoPrefix =
-        keccak256(abi.encodePacked(msg.sender, token, address(this), block.chainid, amount, fee, tokenExportNonce[msg.sender]));
-        bytes32 _message = keccak256(abi.encodePacked(_prefix, _messageNoPrefix));
-        address _recover = ecrecover(_message, _v, _r, _s);
+        address accountHodler;
 
-        require(_recover == verifier, "verification failed");
+        if(msg.sender != address(0)) {
+            accountHodler = msg.sender;
+        } else {
+            accountHodler = accountHodlerOf(_project, _id);
+        }
+        
+        {
+            /// Validation of quality
+            /// message is generated as owner + amount + last time stamp + quality
+            bytes memory _prefix = "\x19Ethereum Signed Message:\n32";
+            bytes32 _messageNoPrefix =
+            keccak256(abi.encodePacked(accountHodler, token, address(this), block.chainid, amount, fee, tokenExportNonce[accountHodler]));
+            bytes32 _message = keccak256(abi.encodePacked(_prefix, _messageNoPrefix));
+            address _recover = ecrecover(_message, _v, _r, _s);
+
+            require(_recover == verifier, "verification failed to exportToken!");
+        }
 
         // project name and id
-        tokenExportNonce[msg.sender]++;
-
-        // project name and id
-        address accountHodler = accountHodlerOf(msg.sender);
+        tokenExportNonce[accountHodler]++;
 
         if (address(accountHodler).codehash == 0) {
-            require(deploy(accountHodler, msg.sender), "Failed to deploy the contract");
+            require(deploy(accountHodler, _project, _id), "Failed to deploy the contract");
             AccountHodler(accountHodler).initialize(owner);
         }
 
-        AccountHodler(accountHodler).exportToken(token, msg.sender, feeReceiver, amount, fee);
+        AccountHodler(accountHodler).exportToken(token, accountHodler, feeReceiver, amount, fee);
     }
 
 
     // change to[] with id[], plus add project name.
-    function exportTokens(address token, uint8 length, address[] calldata to, uint[] calldata amount, uint[] calldata fee) external onlyBundler {
+    function exportTokens(address token, uint8 length,  string memory _project, string[] memory _id, uint[] calldata amount, uint[] calldata fee) external onlyBundler {
         require(length > 0 && length <= 100, "length");
         require(token != address(0), "unknown token");
         require(supportedTokens[token], "unsupported token");
 
         for (uint8 i = 0; i < length; i++) {
-            require(to[i] != address(0), "0");
-            address accountHodler = accountHodlerOf(to[i]);
+            // require(to[i] != address(0), "0");
+            address accountHodler = accountHodlerOf( _project, _id[i]);
 
             if (address(accountHodler).codehash == 0) {
-                require(deploy(accountHodler, to[i]), "Failed to deploy the contract");
+                require(deploy(accountHodler,  _project, _id[i]), "Failed to deploy the contract");
                 AccountHodler(accountHodler).initialize(owner);
             }
 
-            AccountHodler(accountHodler).exportToken(token, to[i], feeReceiver, amount[i], fee[i]);
+            AccountHodler(accountHodler).exportToken(token, accountHodler, feeReceiver, amount[i], fee[i]);
         }
     }
 }
