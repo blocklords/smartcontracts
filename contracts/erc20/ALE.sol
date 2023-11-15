@@ -8,10 +8,10 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 /**
  *  @title Blocklords
  *  @author Medet Ahmetson (admin@blocklords.io)
- *  @notice MEAD token
+ *  @notice ALE token
  *  @dev Not bridged as meter.io required. Bridging and minting are the same.
  */
-contract Mead is ERC20, Ownable {
+contract ALE is ERC20, Ownable {
     using SafeMath for uint256;
 
     bool public bridgeAllowed = false;
@@ -33,7 +33,7 @@ contract Mead is ERC20, Ownable {
     event AddBridge(address indexed bridge);
     event RemoveBridge(address indexed bridge);
 
-    constructor(bool _bridgeAllowed) ERC20("MEAD", "MEAD") {
+    constructor(bool _bridgeAllowed) ERC20("ALE", "ALE") {
         bridgeAllowed = _bridgeAllowed;
     }
 
