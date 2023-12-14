@@ -48,7 +48,7 @@ contract Lord is ERC20, Ownable {
 
     /// @param _bridgeAllowed is FALSE in the token at the original token.
     constructor(
-        bool _bridgeAllowed) ERC20("BLOCKLORDS", "LORD") {
+        bool _bridgeAllowed) ERC20("BLOCKLORDS", "LRD") {
         bridgeAllowed = _bridgeAllowed;
 
         for (uint8 i = 0; i < 11; i++) {
