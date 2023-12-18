@@ -1,3 +1,47 @@
+# LRD Token
+
+## Introduction
+LRD is an ERC20 token built on the Ethereum blockchain, utilizing the robust framework provided by OpenZeppelin to ensure security and standard compliance.
+
+## Features
+- ERC20 compliant
+- Burnable
+
+## Technical Requirements
+- Node.js v12.x or higher
+- Truffle v5.x.x (for development and testing)
+- Solidity v0.8.x (or the version used in your contracts)
+- Ethereum wallet with ETH for deploying contracts
+
+## Installation and Setup
+To install and set up the LRD token contracts, follow these steps:
+
+bash
+git clone https://github.com/blocklords/smartcontracts.git
+cd smartcontracts
+npm install
+
+## Usage
+To deploy the token contract to a local blockchain for testing (e.g., Ganache), run:
+
+truffle migrate --reset
+For deploying to the mainnet or testnets, modify the truffle-config.js file with your network details and run:
+
+truffle migrate --network [network_name]
+
+## Contract Interaction
+To interact with the deployed LRD token contract, you can use truffle console or a web3 interface like MyEtherWallet or Remix.
+
+## Security and Audits
+The LRD token contracts are built using OpenZeppelin's libraries, which are regularly audited by multiple entities. For more details on the security of OpenZeppelin's contracts, please refer to their documentation.
+
+## License
+LRD is released under the MIT License.
+
+## Contact Information
+For any questions or concerns, please reach out to [Email Address] or create an issue in the GitHub repository.
+
+
 # Blocklords Banner Sales
 
 [Blocklords](https://blocklords.com) is a medieval grand strategy MMO game developed by MetaKings studio and published by Seascape Network.
