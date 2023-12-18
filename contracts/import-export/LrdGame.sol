@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract LordGame is Ownable {
+contract LrdGame is Ownable {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -25,7 +25,7 @@ contract LordGame is Ownable {
         uint256 withdrawNum;        //CD time, the number of withdraw  
     }
 
-    address public lord;
+    address public lrd;
     uint256 private verifierKey;
 
     address public bank;    //transfer token
@@ -34,17 +34,17 @@ contract LordGame is Ownable {
     mapping(uint256 => VerifierParams) public verifierParams;
     mapping(address => VerifierDatas) public verifierData;
 
-    event ImportLord(address indexed owner, uint256 indexed amount, uint256 time);
-    event ExportLord(address indexed owner, uint256 indexed amount, uint256 time);
+    event ImportLrd(address indexed owner, uint256 indexed amount, uint256 time);
+    event ExportLrd(address indexed owner, uint256 indexed amount, uint256 time);
 
     event ChangeVerifier(uint256 verifierKey, address indexed verifier, uint256 cdTime, uint256 maxWithdrawNum, uint256 totalWithdrawAmount,uint256 indexed time);
     event AddVerifier(uint256 verifierKey, address indexed verifier, uint256 cdTime, uint256 maxWithdrawNum, uint256 totalWithdrawAmount,uint256 indexed time);
     event ChangeBank(address indexed bank, uint256 indexed time);
 
     constructor(address _verifier, address _token, address _bank) {
-        require(_verifier != address(0), "Lord: Address error");
-        require(_token != address(0), "Lord: Address error");
-        require(_bank != address(0), "Lord: Address error");
+        require(_verifier != address(0), "Lrd: Address error");
+        require(_token != address(0), "Lrd: Address error");
+        require(_bank != address(0), "Lrd: Address error");
 
         verifierKey++;
 
@@ -57,15 +57,15 @@ contract LordGame is Ownable {
         params.maxWithdrawNum = 1000;
 
         bank = _bank;
-        lord = _token;
+        lrd = _token;
     }
 
-    function exchangeLord(uint256 _verifierKey, uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
-        require(_amount > 0,          "Lord: Amount to import should be greater than 0");
+    function exchangeLrd(uint256 _verifierKey, uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
+        require(_amount > 0,          "Lrd: Amount to exchange should be greater than 0");
 
         VerifierParams storage params = verifierParams[_verifierKey];
-        require(params.statu != false, "Lord: This verifier address is not available");
-        require(checkCDTime(_verifierKey, _amount), "Lord: The amount or number of withdrawals is max");
+        require(params.statu != false, "Lrd: This verifier address is not available");
+        require(checkCDTime(_verifierKey, _amount), "Lrd: The amount or number of withdrawals is max");
 
          {
             bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
@@ -73,12 +73,12 @@ contract LordGame is Ownable {
             bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
             address recover         = ecrecover(hash, _v, _r, _s);
 
-            require(recover == params.verifier, "Lord: Verification failed about exportLord");
+            require(recover == params.verifier, "Lrd: Verification failed about exchangeLrd");
         }
 
 
-        IERC20 _token = IERC20(lord);
-        require(_token.balanceOf(bank) >= _amount, "Lord: There is not enough balance to export");
+        IERC20 _token = IERC20(lrd);
+        require(_token.balanceOf(bank) >= _amount, "Lrd: There is not enough balance to export");
         _token.safeTransferFrom(bank, msg.sender, _amount);
 
         VerifierDatas storage data = verifierData[params.verifier];
@@ -86,7 +86,7 @@ contract LordGame is Ownable {
         data.withdrawNum ++;
         nonce[msg.sender]++;
 
-        emit ExportLord(msg.sender, _amount, block.timestamp);
+        emit ExportLrd(msg.sender, _amount, block.timestamp);
     }
 
     function checkCDTime(uint256 _verifierKey, uint256 _amount) private returns(bool) {
@@ -112,10 +112,10 @@ contract LordGame is Ownable {
     }
     
     function changeVerifier(uint256 _verifierKey, address _verifier, bool _statu, uint256 _cdTime, uint256 _maxWithdrawNum, uint256 _totalWithdrawAmount) external onlyOwner {
-        require(_verifier != address(0), "Lord: Address error");
-        require(_totalWithdrawAmount > 0,  "Lord: Amount to import should be greater than 0");
+        require(_verifier != address(0), "Lrd: Address error");
+        require(_totalWithdrawAmount > 0,  "Lrd: Amount to import should be greater than 0");
         VerifierParams storage params = verifierParams[_verifierKey];
-        require(params.verifier != address(0), "Lord: This verifier key does not exist");
+        require(params.verifier != address(0), "Lrd: This verifier key does not exist");
 
         params.verifier = _verifier; 
         params.statu = _statu;
@@ -127,8 +127,8 @@ contract LordGame is Ownable {
     }
     
     function addVerifier(address _verifier, uint256 _cdTime, uint256 _maxWithdrawNum, uint256 _totalWithdrawAmount) external onlyOwner {
-        require(_verifier != address(0), "Lord: Address error");
-        require(_totalWithdrawAmount > 0,  "Lord: Amount to import should be greater than 0");
+        require(_verifier != address(0), "Lrd: Address error");
+        require(_totalWithdrawAmount > 0,  "Lrd: Amount to import should be greater than 0");
 
         verifierKey++;
         VerifierParams storage params = verifierParams[verifierKey];
@@ -143,7 +143,7 @@ contract LordGame is Ownable {
     }
 
     function changeBank(address _bank) external onlyOwner {
-        require(_bank != address(0), "Lord: Address error");
+        require(_bank != address(0), "Lrd: Address error");
 
         bank = _bank;
 

@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  *  @author Medet Ahmetson (admin@blocklords.io)
  *  @notice The LORD token
  */
-contract Lord is ERC20, Ownable {
+contract Lrd is ERC20, Ownable {
     using SafeMath for uint256;
 
     uint256 private _million = 1000 * 1000 * 10 ** 18;
