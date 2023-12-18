@@ -8,9 +8,9 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 /**
  *  @title Blocklords
  *  @author Medet Ahmetson (admin@blocklords.io)
- *  @notice The LORD token
+ *  @notice The LRD token
  */
-contract Lrd is ERC20, Ownable {
+contract LRD is ERC20, Ownable {
     using SafeMath for uint256;
 
     uint256 private _million = 1000 * 1000 * 10 ** 18;
@@ -88,7 +88,7 @@ contract Lrd is ERC20, Ownable {
         _mint(multisig, 1 * _million);  // 1%
     }
 
-    function mintLordsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
+    function mintLrdsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[5], "minted");
         originalMints[5] = true;
         _mint(multisig, 25 * _million + (750 * _thousand));  // 25%
