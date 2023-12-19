@@ -17,21 +17,21 @@ contract LRDLock is Ownable {
     mapping(address => uint) public player;
     mapping(address => uint256) public nonce;
 
-    event ImportLrd(address indexed owner, uint256 indexed amount, uint256 time);
-    event ExportLrd(address indexed owner, uint256 indexed amount, uint256 time);
+    event Deposited(address indexed owner, uint256 indexed amount, uint256 time);
+    event Withdrew(owner, amount, time);ithdraw(address indexed owner, uint256 indexed amount, uint256 time);
     event ChangeVerifier(address indexed verifier, uint256 indexed time);
     event ChangeToken(address indexed token, uint256 indexed time);
 
     constructor(address _verifier, address _token) {
-        require(_verifier != address(0), "Lrd: Address error");
-        require(_token != address(0), "Lrd: Address error");
+        require(_verifier != address(0), "LRD: Address error");
+        require(_token != address(0), "LRD: Address error");
         
         verifier = _verifier;
         lrd = _token;
     }
 
-    function importLrd(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
-        require(_amount > 0,          "Lrd: Amount to import should be greater than 0");
+    function deposit(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
+        require(_amount > 0,          "LRD: Amount to deposit should be greater than 0");
 
         {
             bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
@@ -39,7 +39,7 @@ contract LRDLock is Ownable {
             bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
             address recover         = ecrecover(hash, _v, _r, _s);
 
-            require(recover == verifier, "Lrd: Verification failed about importLrd");
+            require(recover == verifier, "LRD: Verification failed about deposit");
         }
         
         IERC20 _token = IERC20(lrd);
@@ -49,11 +49,11 @@ contract LRDLock is Ownable {
         player[msg.sender] += _amount;
         nonce[msg.sender]++;
 
-        emit ImportLrd(msg.sender, _amount, block.timestamp);
+        emit Deposited(msg.sender, _amount, block.timestamp);
     }
 
-    function exportLrd(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
-        require(_amount > 0,          "Lrd: Amount to import should be greater than 0");
+    function withdraw(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
+        require(_amount > 0,          "LRD: Amount to withdraw should be greater than 0");
         require(player[msg.sender] >= _amount, "Lrd: Never imported that many tokens");
 
          {
@@ -62,22 +62,22 @@ contract LRDLock is Ownable {
             bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
             address recover         = ecrecover(hash, _v, _r, _s);
 
-            require(recover == verifier, "Lrd: Verification failed about exportLrd");
+            require(recover == verifier, "LRD: Verification failed about withdraw");
         }
 
         IERC20 _token = IERC20(lrd);
-        require(_token.balanceOf(address(this)) >= _amount, "Lrd: There is not enough balance to export");
+        require(_token.balanceOf(address(this)) >= _amount, "LRD: There is not enough balance to withdraw");
         _token.safeTransfer(msg.sender, _amount);
 
         player[msg.sender] -= _amount;
         nonce[msg.sender]++;
 
-        emit ExportLrd(msg.sender, _amount, block.timestamp);
+        emit Withdrew(msg.sender, _amount, block.timestamp);
 
     }
     
     function changeVerifier(address _verifier) external onlyOwner {
-        require(_verifier != address(0), "Lrd: Address error");
+        require(_verifier != address(0), "LRD: Address error");
 
         verifier = _verifier;
 
@@ -85,7 +85,7 @@ contract LRDLock is Ownable {
     }
 
     function changeToken(address _token) external onlyOwner {
-        require(_token != address(0), "Lrd: Address error");
+        require(_token != address(0), "LRD: Address error");
 
         lrd = _token;
 

@@ -99,3 +99,40 @@ Please refer to the contract's functions and their respective comments for usage
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+# LRDLock Contract
+
+## Contract Overview
+`LRDLock` is a smart contract designed for locking LRD tokens. It allows users to import (deposit) and export (withdraw) LRD tokens with an additional layer of security by requiring transactions to be signed by a designated verifier.
+
+## Features
+- **Import LRD**: Users can deposit LRD tokens into the contract.
+- **Export LRD**: Users can withdraw LRD tokens from the contract.
+- **Change Verifier**: The owner can change the verifier address.
+- **Change Token**: The owner can change the LRD token address.
+
+## Events
+- `ImportLrd`: Emitted when a user deposits LRD tokens.
+- `ExportLrd`: Emitted when a user withdraws LRD tokens.
+- `ChangeVerifier`: Emitted when the verifier is changed.
+- `ChangeToken`: Emitted when the LRD token address is changed.
+
+## Functions
+### importLrd
+Allows a user to deposit LRD tokens into the contract.
+
+### exportLrd
+Allows a user to withdraw LRD tokens from the contract.
+
+### changeVerifier
+Allows the contract owner to change the address of the verifier.
+
+### changeToken
+Allows the contract owner to change the address of the LRD token.
+
+## Security Considerations
+- All sensitive functions are protected against reentrancy.
+- Only the owner can change critical contract addresses.
+- Nonces are used to prevent replay attacks.
+
+Please note that this contract should be audited by a professional security auditor before mainnet deployment.
