@@ -13,7 +13,7 @@ contract LRDClaim is Ownable {
 
     struct VerifierParams {
         address verifier;           //verifier address
-        bool status;                //verification state. when true, it can be exchanged for lord coins
+        bool statu;                //verification state. when true, it can be exchanged for lord coins
         uint256 cdTime;             //CD time
         uint256 maxWithdrawNum;     //the maximum number of conversions in the CD time
         uint256 totalWithdrawAmount;  //maximum total exchange amount
@@ -34,12 +34,11 @@ contract LRDClaim is Ownable {
     mapping(uint256 => VerifierParams) public verifierParams;
     mapping(address => VerifierDatas) public verifierData;
 
-    event ImportLrd(address indexed owner, uint256 indexed amount, uint256 time);
-    event ExportLrd(address indexed owner, uint256 indexed amount, uint256 time);
 
     event ChangeVerifier(uint256 verifierKey, address indexed verifier, uint256 cdTime, uint256 maxWithdrawNum, uint256 totalWithdrawAmount,uint256 indexed time);
     event AddVerifier(uint256 verifierKey, address indexed verifier, uint256 cdTime, uint256 maxWithdrawNum, uint256 totalWithdrawAmount,uint256 indexed time);
     event ChangeBank(address indexed bank, uint256 indexed time);
+    event ExchangeLrd(address indexed owner, uint256 indexed amount, uint256 time);
 
     constructor(address _verifier, address _token, address _bank) {
         require(_verifier != address(0), "Lrd: Address error");
@@ -51,7 +50,7 @@ contract LRDClaim is Ownable {
         VerifierParams storage params = verifierParams[verifierKey];
 
         params.verifier = _verifier; 
-        params.status = true;
+        params.statu = true;
         params.cdTime = 3600 * 24;
         params.totalWithdrawAmount = 10000 * 10 ** 18;
         params.maxWithdrawNum = 1000;
@@ -64,7 +63,7 @@ contract LRDClaim is Ownable {
         require(_amount > 0,          "Lrd: Amount to exchange should be greater than 0");
 
         VerifierParams storage params = verifierParams[_verifierKey];
-        require(params.status != false, "Lrd: This verifier address is not available");
+        require(params.statu != false, "Lrd: This verifier address is not available");
         require(checkCDTime(_verifierKey, _amount), "Lrd: The amount or number of withdrawals is max");
 
          {
@@ -86,10 +85,10 @@ contract LRDClaim is Ownable {
         data.withdrawNum ++;
         nonce[msg.sender]++;
 
-        emit ExportLrd(msg.sender, _amount, block.timestamp);
+        emit ExchangeLrd(msg.sender, _amount, block.timestamp);
     }
 
-    function checkCDTime(uint256 _verifierKey, uint256 _amount) view returns(bool) {
+    function checkCDTime(uint256 _verifierKey, uint256 _amount) private returns(bool) {
         VerifierParams storage params = verifierParams[_verifierKey];
         VerifierDatas storage data = verifierData[params.verifier];
 
@@ -111,14 +110,14 @@ contract LRDClaim is Ownable {
         return false;
     }
     
-    function changeVerifier(uint256 _verifierKey, address _verifier, bool _status, uint256 _cdTime, uint256 _maxWithdrawNum, uint256 _totalWithdrawAmount) external onlyOwner {
+    function changeVerifier(uint256 _verifierKey, address _verifier, bool _statu, uint256 _cdTime, uint256 _maxWithdrawNum, uint256 _totalWithdrawAmount) external onlyOwner {
         require(_verifier != address(0), "Lrd: Address error");
         require(_totalWithdrawAmount > 0,  "Lrd: Amount to import should be greater than 0");
         VerifierParams storage params = verifierParams[_verifierKey];
         require(params.verifier != address(0), "Lrd: This verifier key does not exist");
 
         params.verifier = _verifier; 
-        params.status = _status;
+        params.statu = _statu;
         params.cdTime = _cdTime;
         params.maxWithdrawNum = _maxWithdrawNum;
         params.totalWithdrawAmount = _totalWithdrawAmount;
@@ -134,7 +133,7 @@ contract LRDClaim is Ownable {
         VerifierParams storage params = verifierParams[verifierKey];
 
         params.verifier = _verifier; 
-        params.status = true;
+        params.statu = true;
         params.cdTime = _cdTime;
         params.totalWithdrawAmount = _totalWithdrawAmount;
         params.maxWithdrawNum = _maxWithdrawNum;
