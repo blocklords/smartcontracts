@@ -16,13 +16,22 @@ contract LRDLock is Ownable {
         uint256 importTime;
         uint256 importType;
     }
+
+    struct PlayerInfo {
+        address walletAddress;
+        PlayerParams params;
+    }
+
+    bool public gameStatus;
     address public verifier;
     address public lrd;
     address[] public playerList;
-    bool public gameStatus;
     uint256[] public importTypes;
+    uint256 public totalAmount;
+    uint256 public activeUsers;
 
     mapping(address => PlayerParams) public player;
+    mapping(address => bool) public addressExists;
     mapping(address => uint256) public nonce;
 
     event ImportLrd(address indexed owner, uint256 indexed amount, uint256 importType, bool redeposit, uint256 time);
@@ -59,10 +68,15 @@ contract LRDLock is Ownable {
 
         // First save LRD, add importTime to playerParams, add player wallet to playerList slice
         if (checkTime(params)) {
-            playerList.push(msg.sender);
             params.importTime = block.timestamp;
         }else {
             require(importTypes[_importType] >= importTypes[params.importType], "Lrd:Not less than the first import");  // If the LRD is not stored for the first time, the import time cannot be less than the previous import time
+        }
+
+        if(!addressExists[msg.sender]){
+            playerList.push(msg.sender);
+            addressExists[msg.sender] = true;
+            activeUsers += 1;
         }
 
         IERC20 _token = IERC20(lrd);
@@ -71,6 +85,7 @@ contract LRDLock is Ownable {
 
         params.amount += _amount;
         params.importType = _importType;
+        totalAmount += _amount;
         nonce[msg.sender]++;
 
         emit ImportLrd(msg.sender, _amount, _importType, checkTime(params), block.timestamp);
@@ -96,9 +111,12 @@ contract LRDLock is Ownable {
         require(_token.balanceOf(address(this)) >= _amount, "Lrd: There is not enough balance to export");
         _token.safeTransfer(msg.sender, params.amount);
 
+        totalAmount -= params.amount;
         params.amount = 0;
         params.importTime = 0;
         params.importType = 0;
+        addressExists[msg.sender] = false;
+        activeUsers -= 1;
         nonce[msg.sender]++;
 
         emit ExportLrd(msg.sender, _amount, block.timestamp);
@@ -112,15 +130,19 @@ contract LRDLock is Ownable {
         }
         return false;
     }
-    
-    // Get a list of player addresses
-    function getPlayerList() public view returns (address[] memory) {
-        return playerList;
-    }
 
-    // Get player count
-    function getPlayerCount() public view returns (uint256) {
-        return playerList.length;
+    function getAllUser() external view returns (PlayerInfo[] memory) {
+        uint256 userCount = playerList.length;
+        PlayerInfo[] memory allUserInfo = new PlayerInfo[](userCount);
+
+        for (uint256 i = 0; i < userCount; i++) {
+            address userAddress = playerList[i];
+            PlayerParams memory params = player[userAddress];
+            PlayerInfo memory userInfo = PlayerInfo(userAddress, params);
+            allUserInfo[i] = userInfo;
+        }
+
+        return allUserInfo;
     }
     
     // Change the checkout wallet
