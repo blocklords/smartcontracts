@@ -91,16 +91,14 @@ contract LRDLock is Ownable {
         emit ImportLrd(msg.sender, _amount, _importType, checkTime(params), block.timestamp);
     }
 
-    function exportLrd(uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
-        require(_amount > 0,          "Lrd: Amount to import should be greater than 0");
-
+    function exportLrd(uint8 _v, bytes32 _r, bytes32 _s) external {
         PlayerParams storage params = player[msg.sender];
-        require(params.amount >= _amount, "Lrd: Never imported that many tokens");
+
         require(checkTime(params), "Lrd: The lock time is not up");
 
          {
             bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
-            bytes32 message         = keccak256(abi.encodePacked(_amount, msg.sender, address(this), block.chainid, nonce[msg.sender]));
+            bytes32 message         = keccak256(abi.encodePacked(params.amount, msg.sender, address(this), block.chainid, nonce[msg.sender]));
             bytes32 hash            = keccak256(abi.encodePacked(prefix, message));
             address recover         = ecrecover(hash, _v, _r, _s);
 
@@ -108,7 +106,7 @@ contract LRDLock is Ownable {
         }
 
         IERC20 _token = IERC20(lrd);
-        require(_token.balanceOf(address(this)) >= _amount, "Lrd: There is not enough balance to export");
+        require(_token.balanceOf(address(this)) >= params.amount, "Lrd: There is not enough balance to export");
         _token.safeTransfer(msg.sender, params.amount);
 
         totalAmount -= params.amount;
@@ -119,18 +117,19 @@ contract LRDLock is Ownable {
         activeUsers -= 1;
         nonce[msg.sender]++;
 
-        emit ExportLrd(msg.sender, _amount, block.timestamp);
+        emit ExportLrd(msg.sender, params.amount, block.timestamp);
 
     }
 
     // Verify player deposit time
-    function checkTime(PlayerParams storage params) view private returns(bool){
+    function checkTime(PlayerParams storage params) view internal returns(bool){
         if((block.timestamp - params.importTime) > importTypes[params.importType]){
             return true;
         }
         return false;
     }
 
+    // Get all player import information
     function getAllUser() external view returns (PlayerInfo[] memory) {
         uint256 userCount = playerList.length;
         PlayerInfo[] memory allUserInfo = new PlayerInfo[](userCount);
@@ -178,11 +177,13 @@ contract LRDLock is Ownable {
     // Change the time for the specified type of import
     function updateImportTypes(uint256 _index, uint256 _newSeconds) external onlyOwner {
         require(_index < importTypes.length, "Lrd: Index out of bounds");
+        require(_newSeconds > 0, "Lrd: The import time cannot be less than 0");
         importTypes[_index] = _newSeconds;
     }
 
     // Add the import time type
     function addImportTypes(uint256 _newSeconds) external onlyOwner {
+        require(_newSeconds > 0, "Lrd: The import time cannot be less than 0");
         importTypes.push(_newSeconds);
     }
 
