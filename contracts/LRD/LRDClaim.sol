@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract LRDClaim is Ownable {
+contract LRDClaim is Ownable, ReentrancyGuard {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -59,11 +60,11 @@ contract LRDClaim is Ownable {
         lrd = _token;
     }
 
-    function exchangeLrd(uint256 _verifierKey, uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external {
+    function exchangeLrd(uint256 _verifierKey, uint256 _amount, uint8 _v, bytes32 _r, bytes32 _s) external nonReentrant {
         require(_amount > 0,          "Lrd: Amount to exchange should be greater than 0");
 
         VerifierParams storage params = verifierParams[_verifierKey];
-        require(params.statu != false, "Lrd: This verifier address is not available");
+        require(!params.statu, "Lrd: This verifier address is not available");
         require(checkCDTime(_verifierKey, _amount), "Lrd: The amount or number of withdrawals is max");
 
          {

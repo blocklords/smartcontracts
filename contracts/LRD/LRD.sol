@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  *  @title Blocklords
@@ -12,9 +13,12 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  */
 contract LRD is ERC20, Ownable {
     using SafeMath for uint256;
+    using Address for address;
 
-    uint256 private _million = 1000 * 1000 * 10 ** 18;
-    uint256 private _thousand = 1000 * 10 ** 18;
+    // uint256 private _million = 1000 * 1000 * 10 ** 18;
+    // uint256 private _thousand = 1000 * 10 ** 18;
+    uint256 private constant MILLION = 1000 * 1000 * 10 ** 18;
+    uint256 private constant THOUSAND  = 1000 * 10 ** 18;
 
     bool[11] public originalMints;
 
@@ -38,7 +42,7 @@ contract LRD is ERC20, Ownable {
     }
 
     modifier onlyMultisig(address multisig) {
-        require(multisig.codehash > 0, "not multisig");
+        require(multisig.isContract(), "not multisig");
         _;
     }
 
@@ -50,10 +54,6 @@ contract LRD is ERC20, Ownable {
     constructor(
         bool _bridgeAllowed) ERC20("BLOCKLORDS", "LRD") {
         bridgeAllowed = _bridgeAllowed;
-
-        for (uint8 i = 0; i < 11; i++) {
-            originalMints[i] = false;
-        }
     }
 
     function mintSeedSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
@@ -61,67 +61,67 @@ contract LRD is ERC20, Ownable {
     
         originalMints[0] = true;
 
-        _mint(multisig, 8 * _million + (750 * _thousand));  // 8.75%
+        _mint(multisig, 8 * MILLION + (750 * THOUSAND));  // 8.75%
     }
 
     function mintStrategicSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[1], "minted");
         originalMints[1] = true;
-        _mint(multisig, 6 * _million + (250 * _thousand));  // 6.25%
+        _mint(multisig, 6 * MILLION + (250 * THOUSAND));  // 6.25%
     }
 
     function mintPrivateSale(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[2], "minted");
         originalMints[2] = true;
-        _mint(multisig, 7 * _million);  // 7%
+        _mint(multisig, 7 * MILLION);  // 7%
     }
 
     function mintLaunchpad(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[3], "minted");
         originalMints[3] = true;
-        _mint(multisig, 2 * _million);  // 2%
+        _mint(multisig, 2 * MILLION);  // 2%
     }
 
     function mintIeo(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[4], "minted");
         originalMints[4] = true;
-        _mint(multisig, 1 * _million);  // 1%
+        _mint(multisig, 1 * MILLION);  // 1%
     }
 
     function mintLrdsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[5], "minted");
         originalMints[5] = true;
-        _mint(multisig, 25 * _million + (750 * _thousand));  // 25%
+        _mint(multisig, 25 * MILLION + (750 * THOUSAND));  // 25%
     }
 
     function mintKingsBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[6], "minted");
         originalMints[6] = true;
-        _mint(multisig, 10 * _million);  // 10%
+        _mint(multisig, 10 * MILLION);  // 10%
     }
 
     function mintDynastyIncentives(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[7], "minted");
         originalMints[7] = true;
-        _mint(multisig, 15 * _million);  // 15%
+        _mint(multisig, 15 * MILLION);  // 15%
     }
 
     function mintLiquidity(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[8], "minted");
         originalMints[8] = true;
-        _mint(multisig, 10 * _million);  // 10%
+        _mint(multisig, 10 * MILLION);  // 10%
     }
 
     function mintFoundationReserve(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[9], "minted");
         originalMints[9] = true;
-        _mint(multisig, 10 * _million);  // 10%
+        _mint(multisig, 10 * MILLION);  // 10%
     }
 
     function mintAdvisors(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[10], "minted");
         originalMints[10] = true;
-        _mint(multisig, 5 * _million);  // 5%
+        _mint(multisig, 5 * MILLION);  // 5%
     }
 
     function increaseLimitSupply(uint256 amount) external onlyOwner {

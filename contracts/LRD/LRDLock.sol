@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract LRDLock is Ownable {
+contract LRDLock is Ownable, ReentrancyGuard {
 
     using SafeMath  for uint256;
     using SafeERC20 for IERC20;
@@ -42,6 +43,10 @@ contract LRDLock is Ownable {
     event ExportLrd(address indexed owner, uint256 indexed amount, uint256 time);
     event ChangeVerifier(address indexed verifier, uint256 indexed time);
     event ChangeToken(address indexed token, uint256 indexed time);
+    event PauseGame(bool indexed gameStatus, uint256 indexed time);
+    event ResumeGame(bool indexed gameStatus, uint256 indexed time);
+    event UpdateImportTypes(uint256 indexed index, uint256 indexed duration, uint256 indexed time);
+    event AddImportTypes(uint256 indexed duration, uint256 indexed time);
 
     constructor(address _verifier, address _token) {
         require(_verifier != address(0), "Lrd: Address error");
@@ -85,7 +90,11 @@ contract LRDLock is Ownable {
 
         IERC20 _token = IERC20(lrd);
         require(_token.balanceOf(msg.sender) >= _amount, "Lrd: Not enough token to import");
+
+        uint256 amountBefore = _token.balanceOf(address(this));
         _token.safeTransferFrom(msg.sender, address(this), _amount);
+        uint256 amountAfter = _token.balanceOf(address(this));
+        require(amountAfter - amountBefore >= _amount, "Lrd: import LRD err");
 
         params.amount    += _amount;
         params.importType = _importType;
@@ -105,7 +114,7 @@ contract LRDLock is Ownable {
         emit ImportLrd(msg.sender, _amount, _importType, checkTime(params), block.timestamp);
     }
 
-    function exportLrd(uint8 _v, bytes32 _r, bytes32 _s) external {
+    function exportLrd(uint8 _v, bytes32 _r, bytes32 _s) external nonReentrant {
         PlayerParams storage params = player[msg.sender];
 
         require(checkTime(params), "Lrd: The lock time is not up");
@@ -131,6 +140,8 @@ contract LRDLock is Ownable {
         activeUsers              -= 1;
         nonce[msg.sender]++;
         delete usersData[msg.sender];
+
+        removeFromPlayerList(msg.sender);
 
         emit ExportLrd(msg.sender, params.amount, block.timestamp);
 
@@ -212,6 +223,22 @@ contract LRDLock is Ownable {
         return string(buffer);
     }
     
+    // Removes an address from the player list
+    function removeFromPlayerList(address _player) internal {
+        int256 playerIndex = -1;
+        for (uint256 i = 0; i < playerList.length; i++) {
+            if (playerList[i] == _player) {
+                playerIndex = int256(i);
+                break;
+            }
+        }
+
+        if (playerIndex != -1) {
+            playerList[uint256(playerIndex)] = playerList[playerList.length - 1];
+            playerList.pop();
+        }
+    }
+
     // Change the checkout wallet
     function changeVerifier(address _verifier) external onlyOwner {
         require(_verifier != address(0), "Lrd: Address error");
@@ -234,12 +261,16 @@ contract LRDLock is Ownable {
     function pauseGame() external onlyOwner {
         require(gameStatus, "Lrd: The game has been paused, don't pause it again");
         gameStatus = false;
+        
+        emit PauseGame(gameStatus, block.timestamp);
     }
 
     // Resume game and player can ont import token
     function resumeGame() external onlyOwner {
         require(!gameStatus, "Lrd: The game has begun");
         gameStatus = true;
+
+        emit ResumeGame(gameStatus, block.timestamp);
     }
 
     // Change the time for the specified type of import
@@ -247,12 +278,16 @@ contract LRDLock is Ownable {
         require(_index < importTypes.length, "Lrd: Index out of bounds");
         require(_newSeconds > 0, "Lrd: The import time cannot be less than 0");
         importTypes[_index] = _newSeconds;
+        
+        emit UpdateImportTypes(_index, _newSeconds, block.timestamp);
     }
 
     // Add the import time type
     function addImportTypes(uint256 _newSeconds) external onlyOwner {
         require(_newSeconds > 0, "Lrd: The import time cannot be less than 0");
         importTypes.push(_newSeconds);
+        
+        emit AddImportTypes(_newSeconds, block.timestamp);
     }
 
 }
