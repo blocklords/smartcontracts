@@ -64,7 +64,7 @@ contract LRDClaim is Ownable, ReentrancyGuard {
         require(_amount > 0,          "Lrd: Amount to exchange should be greater than 0");
 
         VerifierParams storage params = verifierParams[_verifierKey];
-        require(!params.statu, "Lrd: This verifier address is not available");
+        require(params.statu, "Lrd: This verifier address is not available");
         require(checkCDTime(_verifierKey, _amount), "Lrd: The amount or number of withdrawals is max");
 
          {
