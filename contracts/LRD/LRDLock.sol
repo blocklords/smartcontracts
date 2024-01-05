@@ -15,7 +15,7 @@ contract LRDLock is Ownable, ReentrancyGuard {
     struct PlayerParams {
         uint256 amount;
         uint256 importTime;
-        uint256 importType;
+        uint256 unlockTime;
     }
 
     struct UserData {
@@ -23,7 +23,6 @@ contract LRDLock is Ownable, ReentrancyGuard {
         uint256 importTime;  // The time of thie deposit
         uint256 totalAmount; // Total deposits (as of current deposits)
         uint256 endTime;     // Maturity time
-        uint256 importType;  // The type of this deposit
     }
 
     bool      public gameStatus;
@@ -39,7 +38,7 @@ contract LRDLock is Ownable, ReentrancyGuard {
     mapping(address => bool) public addressExists;
     mapping(address => uint256) public nonce;
 
-    event ImportLrd(address indexed owner, uint256 indexed amount, uint256 importType, bool redeposit, uint256 time);
+    event ImportLrd(address indexed owner, uint256 indexed amount, uint256 importType, uint256 unlockTime, uint256 time);
     event ExportLrd(address indexed owner, uint256 indexed amount, uint256 time);
     event ChangeVerifier(address indexed verifier, uint256 indexed time);
     event ChangeToken(address indexed token, uint256 indexed time);
@@ -56,15 +55,19 @@ contract LRDLock is Ownable, ReentrancyGuard {
         lrd         = _token;
         gameStatus  = true;
 
-        // Add importType slices for the seconds of 0 days, 1 week, 1 month, 6 months, 1 year, and 4 years, respectively
-        importTypes = [0, 86400 * 7, 86400 * 30, 86400 * 180, 86400 * 365, 86400 * 365 * 4];
+        // Add importType slices for the seconds of 4 weeks, 13 weeks, 26 weeks, 52 weeks, respectively
+        importTypes = [0, 86400 * 28, 86400 * 91, 86400 * 182, 86400 * 364];
     }
 
     function importLrd(uint256 _amount, uint256 _importType, uint8 _v, bytes32 _r, bytes32 _s) external {
         require(gameStatus, "Lrd: The game is paused, cannot import");
-        require(_importType > 0 && (_importType < importTypes.length),      "Lrd: The lock time type is wrong");
-        require(_amount > 0,          "Lrd: Amount to import should be greater than 0");
+        require(!(_amount == 0 && _importType == 0),      "Lrd: Amont and importType cannot be 0 at the same time");
+        require(_amount >= 0,          "Lrd: Amount to import should be greater than 0");
+
         PlayerParams storage params = player[msg.sender];
+        if(params.amount == 0) {
+            require(_amount > 0, "Lrd: Must deposit a non-zero amount for the first time");
+        }
 
         {
             bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
@@ -75,49 +78,55 @@ contract LRDLock is Ownable, ReentrancyGuard {
             require(recover == verifier, "Lrd: Verification failed about importLrd");
         }
 
-        // First save LRD, add importTime to playerParams, add player wallet to playerList slice
-        if (checkTime(params)) {
-            params.importTime = block.timestamp;
-        }else {
-            require(importTypes[_importType] >= importTypes[params.importType], "Lrd:Not less than the first import");  // If the LRD is not stored for the first time, the import time cannot be less than the previous import time
-        }
-
         if(!addressExists[msg.sender]){
             playerList.push(msg.sender);
             addressExists[msg.sender] = true;
             activeUsers              += 1;
         }
 
-        IERC20 _token = IERC20(lrd);
-        require(_token.balanceOf(msg.sender) >= _amount, "Lrd: Not enough token to import");
+        if(_amount > 0) {
+            if(params.amount == 0) {
+                require(_importType != 0, "Lrd: The first import lock type is wrong");
+                params.unlockTime = block.timestamp + importTypes[_importType];
+                params.importTime = block.timestamp;
+            } else {
+                params.unlockTime += importTypes[_importType];
+            }
 
-        uint256 amountBefore = _token.balanceOf(address(this));
-        _token.safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 amountAfter = _token.balanceOf(address(this));
-        require(amountAfter - amountBefore >= _amount, "Lrd: import LRD err");
+            IERC20 _token = IERC20(lrd);
+            require(_token.balanceOf(msg.sender) >= _amount, "Lrd: Not enough token to import");
 
-        params.amount    += _amount;
-        params.importType = _importType;
-        totalAmount      += _amount;
+            uint256 amountBefore = _token.balanceOf(address(this));
+            _token.safeTransferFrom(msg.sender, address(this), _amount);
+            uint256 amountAfter = _token.balanceOf(address(this));
+            require(amountAfter - amountBefore >= _amount, "Lrd: import LRD err");
+            
+            params.amount += _amount;
+            totalAmount      += _amount;
+
+        } else if(_importType != 0){
+                require(params.amount > 0, "Lrd: Cannot extend unlock time without existing deposit");
+                params.unlockTime += importTypes[_importType];
+        }
+        
 
         // Push in current wallet pledge information for easy back-end calculation of returns
         UserData memory userData;
         userData.amount      = _amount;
         userData.importTime  = block.timestamp;
         userData.totalAmount = params.amount;
-        userData.endTime     = params.importTime + importTypes[_importType];
-        userData.importType  = _importType;
+        userData.endTime     = params.unlockTime;
         usersData[msg.sender].push(userData);
 
         nonce[msg.sender]++;
 
-        emit ImportLrd(msg.sender, _amount, _importType, checkTime(params), block.timestamp);
+        emit ImportLrd(msg.sender, _amount, _importType, params.unlockTime, block.timestamp);
     }
 
     function exportLrd(uint8 _v, bytes32 _r, bytes32 _s) external nonReentrant {
         PlayerParams storage params = player[msg.sender];
 
-        require(checkTime(params), "Lrd: The lock time is not up");
+        require(block.timestamp >= params.unlockTime, "Lrd: The lock time is not up");
 
          {
             bytes memory prefix     = "\x19Ethereum Signed Message:\n32";
@@ -135,7 +144,7 @@ contract LRDLock is Ownable, ReentrancyGuard {
         totalAmount              -= params.amount;
         params.amount             = 0;
         params.importTime         = 0;
-        params.importType         = 0;
+        params.unlockTime         = 0;
         addressExists[msg.sender] = false;
         activeUsers              -= 1;
         nonce[msg.sender]++;
@@ -145,14 +154,6 @@ contract LRDLock is Ownable, ReentrancyGuard {
 
         emit ExportLrd(msg.sender, params.amount, block.timestamp);
 
-    }
-
-    // Verify player deposit time
-    function checkTime(PlayerParams storage params) view internal returns(bool){
-        if((block.timestamp - params.importTime) > importTypes[params.importType]){
-            return true;
-        }
-        return false;
     }
 
     // Get all player import information
@@ -192,11 +193,10 @@ contract LRDLock is Ownable, ReentrancyGuard {
     function depositDetailToString(UserData memory _detail) internal pure returns (string memory) {
         string memory amountStr = toString(_detail.amount);
         string memory importTimeStr = toString(_detail.importTime);
-        string memory importTypeStr = toString(_detail.importType);
         string memory totalAmountStr = toString(_detail.totalAmount);
         string memory endTimeStr = toString(_detail.endTime);
 
-        return string(abi.encodePacked(amountStr, ",", importTimeStr, ",", importTypeStr, ",", totalAmountStr, ",", endTimeStr));
+        return string(abi.encodePacked(amountStr, ",", importTimeStr, ",", totalAmountStr, ",", endTimeStr));
 }
 
     // Convert bytes32 to a string
