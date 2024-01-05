@@ -122,13 +122,13 @@ contract LRD is ERC20, Ownable {
     }
 
     function mintFoundationReserve(address multisig) external onlyMultisig(multisig) original onlyOwner {
-        require(!originalMints[10], "minted");
+        require(!originalMints[11], "minted");
         originalMints[11] = true;
         _mint(multisig, 11 * MILLION);  // 11%
     }
 
     function mintAdvisors(address multisig) external onlyMultisig(multisig) original onlyOwner {
-        require(!originalMints[10], "minted");
+        require(!originalMints[12], "minted");
         originalMints[12] = true;
         _mint(multisig, 8 * MILLION);  // 8%
     }
