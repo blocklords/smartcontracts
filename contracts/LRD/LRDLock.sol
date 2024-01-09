@@ -65,6 +65,11 @@ contract LRDLock is Ownable, ReentrancyGuard {
         require(_amount >= 0,          "Lrd: Amount to import should be greater than 0");
 
         PlayerParams storage params = player[msg.sender];
+
+        if(params.unlockTime > 0) {
+            require(params.unlockTime > block.timestamp, "Lrd:Lock time is up, please export first");
+        }
+        
         if(params.amount == 0) {
             require(_amount > 0, "Lrd: Must deposit a non-zero amount for the first time");
         }
