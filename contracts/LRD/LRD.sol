@@ -79,7 +79,7 @@ contract LRD is ERC20, Ownable {
         _mint(multisig, 6 * MILLION);  // 6%
     }
 
-    function mintCommunityRewards(address multisig) external onlyMultisig(multisig) original onlyOwner {
+    function mintCommunityConquest(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[4], "minted");
         originalMints[4] = true;
         _mint(multisig, 1 * MILLION + (500 * THOUSAND));  // 1.5%
@@ -91,7 +91,7 @@ contract LRD is ERC20, Ownable {
         _mint(multisig, 500 * THOUSAND);  // 0.5%
     }
 
-    function mintFarmersBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
+    function mintSeasonBounty(address multisig) external onlyMultisig(multisig) original onlyOwner {
         require(!originalMints[6], "minted");
         originalMints[6] = true;
         _mint(multisig, 5 * MILLION);  // 5%
