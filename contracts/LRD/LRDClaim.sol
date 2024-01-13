@@ -68,13 +68,13 @@ contract LRDClaim is Ownable, ReentrancyGuard {
         params.verifier            = _verifier; 
         params.statu               = true;
         params.cdTime              = 3600 * 24;
-        params.totalWithdrawAmount = 10000 * 10 ** 18;
+        params.totalWithdrawAmount = 1000000 * 10 ** 18;
         params.maxWithdrawNum      = 1000;
 
         
         cDParams.cdTime                 = 3600 * 24;
-        cDParams.maxCdWithdrawAmount    = 10 * 10 ** 18;
-        cDParams.maxTotalWithdrawAmount = 1000 * 10 ** 18;
+        cDParams.maxCdWithdrawAmount    = 3000 * 10 ** 18;
+        cDParams.maxTotalWithdrawAmount = 500000 * 10 ** 18;
 
         bank = _bank;
         lrd  = _token;
