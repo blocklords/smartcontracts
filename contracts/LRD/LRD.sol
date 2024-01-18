@@ -48,7 +48,7 @@ contract LRD is ERC20, Ownable {
     event RemoveBridge(address indexed bridge);
 
     /// @param _bridgeAllowed is FALSE in the token at the original token.
-    constructor(bool _bridgeAllowed) ERC20("BLOCKLORDS", "LRD") {
+    constructor(bool _bridgeAllowed) ERC20("BLOCKLORDS", "LRDS") {
         bridgeAllowed = _bridgeAllowed;
     }
 
